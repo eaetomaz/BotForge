@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BotForge.Api/BotForge.Api.csproj" />
+    <Project Path="src/BotForge.Application/BotForge.Application.csproj" />
+    <Project Path="src/BotForge.Domain/BotForge.Domain.csproj" />
+    <Project Path="src/BotForge.Infrastructure/BotForge.Infrastructure.csproj" />
+  </Folder>
+</Solution>
