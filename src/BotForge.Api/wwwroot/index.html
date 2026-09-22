@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<title>BotForge</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --border: #e0e2e7;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --accent: #0a7d5c;
+    --accent-dark: #065c43;
+    --danger: #c0392b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+  }
+  header {
+    padding: 20px 24px 0;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+
+  nav {
+    display: flex;
+    gap: 4px;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  nav button {
+    border: none;
+    background: transparent;
+    padding: 10px 18px;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+  }
+  nav button.active {
+    color: var(--accent-dark);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 24px 60px;
+  }
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .card h2 { margin: 0 0 4px; font-size: 16px; }
+  .card .hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+
+  #log {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    height: 440px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+    background: var(--panel);
+  }
+  .msg { margin: 10px 0; display: flex; }
+  .msg .bubble { max-width: 75%; padding: 8px 12px; border-radius: 10px; line-height: 1.4; font-size: 14px; }
+  .msg.user { justify-content: flex-end; }
+  .msg.user .bubble { background: var(--accent); color: white; }
+  .msg.bot { justify-content: flex-start; }
+  .msg.bot .bubble { background: #eef0f3; color: var(--text); }
+  .msg.bot.error .bubble { background: #fdecea; color: var(--danger); }
+
+  form.row { display: flex; gap: 8px; }
+  input, textarea {
+    width: 100%;
+    padding: 9px 10px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    background: var(--panel);
+    color: var(--text);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; margin-top: 10px; }
+  label:first-child { margin-top: 0; }
+
+  button.primary {
+    padding: 9px 18px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+  }
+  button.primary:hover { background: var(--accent-dark); }
+
+  button.secondary {
+    padding: 7px 14px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--muted);
+    cursor: pointer;
+  }
+  button.secondary:hover { color: var(--text); border-color: var(--muted); }
+
+  .status { font-size: 13px; margin-top: 8px; min-height: 18px; }
+  .status.ok { color: var(--accent-dark); }
+  .status.error { color: var(--danger); }
+</style>
+</head>
+<body>
+<header>
+  <h1>BotForge</h1>
+  <p>Converse com o bot e treine o que ele deve saber — tudo rodando localmente.</p>
+</header>
+
+<nav>
+  <button class="tab-btn active" data-tab="chat">Conversar</button>
+  <button class="tab-btn" data-tab="train">Treinar</button>
+</nav>
+
+<main>
+  <section class="tab active" id="tab-chat">
+    <div style="display:flex; justify-content:flex-end; margin-bottom:8px">
+      <button id="clear-chat-btn" class="secondary">Limpar chat</button>
+    </div>
+    <div id="log"></div>
+    <form id="chat-form" class="row">
+      <input id="chat-input" autocomplete="off" placeholder="Digite sua mensagem..." />
+      <button type="submit" class="primary">Enviar</button>
+    </form>
+  </section>
+
+  <section class="tab" id="tab-train">
+    <div class="card" id="train-login">
+      <h2>Área de treino protegida</h2>
+      <p class="hint">Digite usuário e senha para acessar o treino do bot.</p>
+      <form id="train-login-form">
+        <label for="train-username">Usuário</label>
+        <input id="train-username" autocomplete="username" />
+
+        <label for="train-password">Senha</label>
+        <input id="train-password" type="password" autocomplete="current-password" />
+
+        <div style="margin-top:12px">
+          <button type="submit" class="primary">Entrar</button>
+        </div>
+        <div id="train-login-status" class="status"></div>
+      </form>
+    </div>
+
+    <div id="train-content" hidden>
+    <div style="display:flex; justify-content:flex-end; margin-bottom:8px">
+      <button id="train-logout-btn" class="secondary">Sair</button>
+    </div>
+    <div class="card">
+      <h2>Personalidade do bot</h2>
+      <p class="hint">Define o que o bot é e como ele deve se comportar.</p>
+      <form id="profile-form">
+        <label for="profile-name">Nome</label>
+        <input id="profile-name" />
+
+        <label for="profile-purpose">Propósito</label>
+        <input id="profile-purpose" placeholder="Ex: Atendimento ao cliente da Loja X" />
+
+        <label for="profile-instructions">Instruções de comportamento</label>
+        <textarea id="profile-instructions" placeholder="Ex: Responda apenas com base no conhecimento treinado."></textarea>
+
+        <label for="profile-style">Exemplos de tom/estilo (opcional)</label>
+        <p class="hint" style="margin:-4px 0 6px">
+          Funciona muito melhor com exemplos reais de conversa do que com uma instrução solta
+          (ex: "responda de forma brincalhona"). Use o formato abaixo, um par por vez:
+        </p>
+        <textarea id="profile-style" placeholder="Pergunta: Vocês vendem sorvete?
+Resposta: Sorvete a gente não tem, mas um corte novo com certeza vai te deixar com um sorriso do tamanho de um! 😄
+
+Pergunta: Qual o horário?
+Resposta: Bem na hora que você mais precisa? Segunda a sexta, 9h às 18h!"></textarea>
+
+        <div style="margin-top:12px">
+          <button type="submit" class="primary">Salvar personalidade</button>
+        </div>
+        <div id="profile-status" class="status"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Base de conhecimento</h2>
+      <p class="hint">O que o bot vai consultar antes de responder. Adicione fatos, respostas prontas, regras.</p>
+      <form id="knowledge-form">
+        <label for="knowledge-content">Conteúdo</label>
+        <textarea id="knowledge-content" placeholder="Ex: O horário de atendimento é de segunda a sexta, das 9h às 18h."></textarea>
+
+        <label for="knowledge-tags">Tags (opcional)</label>
+        <input id="knowledge-tags" placeholder="Ex: horario" />
+
+        <div style="margin-top:12px">
+          <button type="submit" class="primary">Adicionar</button>
+        </div>
+        <div id="knowledge-status" class="status"></div>
+      </form>
+    </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const conversationId = localStorage.getItem('botforge-conversation-id') ||
+    (() => { const id = crypto.randomUUID(); localStorage.setItem('botforge-conversation-id', id); return id; })();
+
+  // ---- Tabs ----
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'train') {
+        if (trainAuthHeader) showTrainContent(); else showTrainLogin();
+      }
+    });
+  });
+
+  // ---- Autenticação da área de treino ----
+  let trainAuthHeader = sessionStorage.getItem('botforge-train-auth');
+
+  function showTrainLogin() {
+    document.getElementById('train-login').hidden = false;
+    document.getElementById('train-content').hidden = true;
+  }
+
+  function showTrainContent() {
+    document.getElementById('train-login').hidden = true;
+    document.getElementById('train-content').hidden = false;
+    loadProfile();
+  }
+
+  async function authFetch(url, options = {}) {
+    const headers = Object.assign({}, options.headers || {}, trainAuthHeader ? { 'Authorization': trainAuthHeader } : {});
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) {
+      trainAuthHeader = null;
+      sessionStorage.removeItem('botforge-train-auth');
+      showTrainLogin();
+    }
+    return res;
+  }
+
+  document.getElementById('train-login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('train-username').value;
+    const password = document.getElementById('train-password').value;
+    const statusEl = document.getElementById('train-login-status');
+    statusEl.textContent = 'Entrando...';
+    statusEl.className = 'status';
+
+    const header = 'Basic ' + btoa(username + ':' + password);
+    try {
+      const res = await fetch('/knowledge', { headers: { 'Authorization': header } });
+      if (!res.ok) {
+        statusEl.textContent = 'Usuário ou senha inválidos.';
+        statusEl.className = 'status error';
+        return;
+      }
+      trainAuthHeader = header;
+      sessionStorage.setItem('botforge-train-auth', header);
+      document.getElementById('train-password').value = '';
+      statusEl.textContent = '';
+      showTrainContent();
+    } catch (err) {
+      statusEl.textContent = 'Erro de conexão: ' + err;
+      statusEl.className = 'status error';
+    }
+  });
+
+  document.getElementById('train-logout-btn').addEventListener('click', () => {
+    trainAuthHeader = null;
+    sessionStorage.removeItem('botforge-train-auth');
+    showTrainLogin();
+  });
+
+  // ---- Chat ----
+  const log = document.getElementById('log');
+  const chatForm = document.getElementById('chat-form');
+  const chatInput = document.getElementById('chat-input');
+
+  function appendMessage(role, text, isError) {
+    const row = document.createElement('div');
+    row.className = 'msg ' + role + (isError ? ' error' : '');
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    row.appendChild(bubble);
+    log.appendChild(row);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const message = chatInput.value.trim();
+    if (!message) return;
+    chatInput.value = '';
+    appendMessage('user', message);
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId, message })
+      });
+      if (!res.ok) {
+        appendMessage('bot', 'Erro ' + res.status + ': ' + await res.text(), true);
+        return;
+      }
+      const data = await res.json();
+      if (data.cleared) log.innerHTML = '';
+      appendMessage('bot', data.reply || '(resposta vazia)');
+    } catch (err) {
+      appendMessage('bot', 'Erro de conexão: ' + err, true);
+    }
+  });
+
+  document.getElementById('clear-chat-btn').addEventListener('click', async () => {
+    try {
+      await fetch('/chat/' + encodeURIComponent(conversationId), { method: 'DELETE' });
+    } catch (err) {
+      // mesmo se der erro de rede, limpa a visualização localmente
+    }
+    log.innerHTML = '';
+  });
+
+  // ---- Perfil ----
+  const profileForm = document.getElementById('profile-form');
+  const profileStatus = document.getElementById('profile-status');
+
+  async function loadProfile() {
+    try {
+      const res = await authFetch('/profile');
+      const data = await res.json();
+      document.getElementById('profile-name').value = data.name || '';
+      document.getElementById('profile-purpose').value = data.purpose || '';
+      document.getElementById('profile-instructions').value = data.systemPromptInstructions || '';
+      document.getElementById('profile-style').value = data.styleExamples || '';
+    } catch (err) {
+      profileStatus.textContent = 'Erro ao carregar perfil: ' + err;
+      profileStatus.className = 'status error';
+    }
+  }
+
+  profileForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    profileStatus.textContent = 'Salvando...';
+    profileStatus.className = 'status';
+    try {
+      const res = await authFetch('/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('profile-name').value,
+          purpose: document.getElementById('profile-purpose').value,
+          systemPromptInstructions: document.getElementById('profile-instructions').value,
+          styleExamples: document.getElementById('profile-style').value || null
+        })
+      });
+      if (!res.ok) throw new Error(res.status + ' ' + await res.text());
+      profileStatus.textContent = 'Salvo — já vale na próxima pergunta.';
+      profileStatus.className = 'status ok';
+    } catch (err) {
+      profileStatus.textContent = 'Erro ao salvar: ' + err;
+      profileStatus.className = 'status error';
+    }
+  });
+
+  // ---- Conhecimento ----
+  const knowledgeForm = document.getElementById('knowledge-form');
+  const knowledgeStatus = document.getElementById('knowledge-status');
+
+  knowledgeForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const content = document.getElementById('knowledge-content').value.trim();
+    if (!content) return;
+    knowledgeStatus.textContent = 'Treinando...';
+    knowledgeStatus.className = 'status';
+    try {
+      const res = await authFetch('/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content,
+          tags: document.getElementById('knowledge-tags').value || null
+        })
+      });
+      if (!res.ok) throw new Error(res.status + ' ' + await res.text());
+      document.getElementById('knowledge-content').value = '';
+      document.getElementById('knowledge-tags').value = '';
+      knowledgeStatus.textContent = 'Adicionado.';
+      knowledgeStatus.className = 'status ok';
+    } catch (err) {
+      knowledgeStatus.textContent = 'Erro ao treinar: ' + err;
+      knowledgeStatus.className = 'status error';
+    }
+  });
+</script>
+</body>
+</html>
